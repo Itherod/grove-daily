@@ -2,7 +2,7 @@ name: Grove daily post
 
 on:
   schedule:
-    - cron: "0 15 * * *"
+        - cron: "0 11 * * *" # 11:00 UTC = 4:00 AM PDT / 7:00 AM ET
   workflow_dispatch:
 
 permissions:
