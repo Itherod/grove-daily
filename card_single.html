@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Grove Daily Card</title>
+<style id="embedCss"></style>
+<style>
+  /* Frame for social export: 540x675 CSS px, screenshotted at 2x = 1080x1350 */
+  html,body{height:100%;overflow:hidden;}
+  body{padding:0 !important;display:flex;align-items:center;justify-content:center;}
+  .stage{width:500px;}
+  .card{max-width:500px;transform-origin:center center;}
+  .site{margin-top:10px;text-align:center;font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--stone);}
+</style>
+</head>
+<body>
+  <div class="stage">
+  <main class="card">
+    <div class="kicker" id="kicker"></div>
+    <div class="date" id="date"></div>
+
+    <section class="panel active" id="runePanel">
+      <div class="glyph" id="glyph"></div>
+      <div class="name" id="runeName"></div>
+      <div class="sub" id="runeSub"></div>
+      <div class="rule"></div>
+      <div class="verse" id="verse"></div>
+      <div class="rule"></div>
+      <div class="meaning" id="meaning"></div>
+      <div class="source" id="runeSource"></div>
+    </section>
+
+    <section class="panel" id="deityPanel">
+      <div class="name" id="deityName"></div>
+      <div class="epithet" id="epithet"></div>
+      <div class="domain" id="domain"></div>
+      <div class="rule"></div>
+      <div class="blurb" id="blurb"></div>
+      <div class="brings" id="brings"></div>
+      <div class="source" id="deitySource"></div>
+    </section>
+
+    <div class="foot" id="foot"></div>
+    <div class="site">theblackthorngrove.life</div>
+  </main>
+  </div>
+
+<script src="data.js"></script>
+<script src="embed_css.js"></script>
+<script>
+document.getElementById('embedCss').textContent = EMBED_CSS;
+
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode') || 'rune';           // 'rune' | 'deity'
+const dateStr = params.get('date');                   // YYYY-MM-DD, else today
+
+let d;
+if (dateStr) {
+  const [y,m,day] = dateStr.split('-').map(Number);
+  d = new Date(y, m-1, day);                          // local midnight in browser tz
+} else {
+  const n = new Date();
+  d = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+}
+
+// Identical math to the Grove Hearth embed's dayIndex()
+function dayIndex(len){
+  const days = Math.floor(d.getTime()/86400000);
+  return ((days%len)+len)%len;
+}
+
+document.getElementById('date').textContent =
+  d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+const isRune = mode === 'rune';
+document.getElementById('runePanel').classList.toggle('active', isRune);
+document.getElementById('deityPanel').classList.toggle('active', !isRune);
+document.getElementById('kicker').textContent = isRune
+  ? 'The Blackthorn Grove · Rune of the Day'
+  : 'The Blackthorn Grove · Deity of the Day';
+document.getElementById('foot').textContent = isRune
+  ? 'The runes speak when the silence is true'
+  : 'Honor the old ones; walk your own road';
+
+let drawnName = '';
+if (isRune) {
+  const r = RUNES[dayIndex(RUNES.length)];
+  drawnName = r.name;
+  document.getElementById('glyph').textContent = r.g;
+  document.getElementById('runeName').textContent = r.name;
+  document.getElementById('runeSub').textContent = r.sub;
+  document.getElementById('verse').innerHTML = r.verse.map(l=>'<span>'+l+'</span>').join('');
+  document.getElementById('meaning').textContent = r.meaning;
+  document.getElementById('runeSource').innerHTML = r.source ? '<b>Verse from:</b> '+r.source : '';
+} else {
+  const dd = DEITIES[dayIndex(DEITIES.length)];
+  drawnName = dd.name;
+  document.getElementById('deityName').textContent = dd.name;
+  document.getElementById('epithet').textContent = dd.epithet;
+  document.getElementById('domain').textContent = dd.domain;
+  document.getElementById('blurb').textContent = dd.blurb;
+  document.getElementById('brings').innerHTML = '<b>Brings:</b> '+dd.brings;
+  document.getElementById('deitySource').innerHTML = '<b>Found in:</b> '+dd.source;
+}
+
+// Scale the card to fit the 540x675 frame with margin
+const card = document.querySelector('.card');
+const fit = () => {
+  const w = card.offsetWidth, h = card.offsetHeight;
+  const s = Math.min(510/w, 645/h, 1.28);
+  card.style.transform = 'scale('+s+')';
+  document.title = JSON.stringify({name:drawnName, scale:s, w, h});
+};
+requestAnimationFrame(fit);
+</script>
+</body>
+</html>
