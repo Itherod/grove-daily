@@ -2,7 +2,7 @@ name: Grove daily post
 
 on:
   schedule:
-        - cron: "0 11 * * *" # 11:00 UTC = 4:00 AM PDT / 7:00 AM ET
+    - cron: "17 11 * * *"   # 11:17 UTC = 7:17 AM ET
   workflow_dispatch:
 
 permissions:
@@ -12,9 +12,9 @@ jobs:
   post:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -23,16 +23,21 @@ jobs:
           pip install playwright
           playwright install --with-deps chromium
 
-      - name: Generate today's cards
+      - name: Render next card in the queue
         run: python3 generate_cards.py
 
-      - name: Commit cards to repo
+      - name: Commit card and queue state
         run: |
           git config user.name "grove-bot"
           git config user.email "actions@github.com"
-          git add out/
-          git commit -m "Daily cards $(TZ=America/Los_Angeles date +%F)" || echo "nothing new"
-          git push
+          git add out/ posted.json
+          git commit -m "Daily card $(TZ=America/Los_Angeles date +%F)" || echo "nothing new"
+          for i in 1 2 3 4; do
+            git push && break
+            echo "push failed, retry $i in 45s"
+            sleep 45
+            git pull --rebase
+          done
 
       - name: Post to Facebook and Instagram
         env:
