@@ -12,6 +12,14 @@
   .card{max-width:500px;transform-origin:center center;}
   .site{margin-top:10px;text-align:center;font-family:'Helvetica Neue',Arial,sans-serif;
     font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--stone);}
+  /* Plant card additions, built from the embed's own variables */
+  #plantName{font-size:28px;color:var(--moss);text-shadow:0 0 22px rgba(143,174,122,.22);margin-bottom:5px;}
+  .ties{margin-top:14px;font-size:14.5px;line-height:1.6;color:#cfc9bb;text-align:center;}
+  .ties b{color:var(--moss);font-weight:normal;}
+  .caution{margin-top:16px;padding-top:12px;border-top:1px solid var(--rule);
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;line-height:1.5;
+    color:var(--stone);text-align:center;}
+  .caution b{color:#c9a227;font-weight:normal;letter-spacing:.08em;text-transform:uppercase;font-size:10.5px;}
 </style>
 </head>
 <body>
@@ -41,6 +49,19 @@
       <div class="source" id="deitySource"></div>
     </section>
 
+    <section class="panel" id="plantPanel">
+      <div class="name" id="plantName"></div>
+      <div class="epithet" id="plantFolk"></div>
+      <div class="domain" id="plantSub"></div>
+      <div class="rule"></div>
+      <div class="verse" id="plantVerse"></div>
+      <div class="rule"></div>
+      <div class="meaning" id="plantBody"></div>
+      <div class="ties" id="plantTies"></div>
+      <div class="source" id="plantWhen"></div>
+      <div class="caution" id="plantCaution"></div>
+    </section>
+
     <div class="foot" id="foot"></div>
     <div class="site">theblackthorngrove.life</div>
   </main>
@@ -52,20 +73,23 @@
 document.getElementById('embedCss').textContent = EMBED_CSS;
 
 const params = new URLSearchParams(location.search);
-const mode = params.get('mode') || 'rune';           // 'rune' | 'deity'
-const dateStr = params.get('date');                   // YYYY-MM-DD, else today
+const mode = params.get('mode') || 'rune';      // 'rune' | 'deity' | 'plant'
+const dateStr = params.get('date');              // YYYY-MM-DD, else today
 
 let d;
 if (dateStr) {
   const [y,m,day] = dateStr.split('-').map(Number);
-  d = new Date(y, m-1, day);                          // local midnight in browser tz
+  d = new Date(y, m-1, day);                     // local midnight in browser tz
 } else {
   const n = new Date();
   d = new Date(n.getFullYear(), n.getMonth(), n.getDate());
 }
 
 // Identical math to the Grove Hearth embed's dayIndex()
+// An explicit ?idx=N overrides the date seed (used by the deck/reel renderer)
+const idxParam = params.get('idx');
 function dayIndex(len){
+  if (idxParam !== null) return ((parseInt(idxParam,10)%len)+len)%len;
   const days = Math.floor(d.getTime()/86400000);
   return ((days%len)+len)%len;
 }
@@ -73,18 +97,25 @@ function dayIndex(len){
 document.getElementById('date').textContent =
   d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
-const isRune = mode === 'rune';
-document.getElementById('runePanel').classList.toggle('active', isRune);
-document.getElementById('deityPanel').classList.toggle('active', !isRune);
-document.getElementById('kicker').textContent = isRune
-  ? 'The Blackthorn Grove · Rune of the Day'
-  : 'The Blackthorn Grove · Deity of the Day';
-document.getElementById('foot').textContent = isRune
-  ? 'The runes speak when the silence is true'
-  : 'Honor the old ones; walk your own road';
+const KICKERS = {
+  rune:  'The Blackthorn Grove · Rune of the Day',
+  deity: 'The Blackthorn Grove · Deity of the Day',
+  plant: 'The Blackthorn Grove · Plant of the Day'
+};
+const FOOTS = {
+  rune:  'The runes speak when the silence is true',
+  deity: 'Honor the old ones; walk your own road',
+  plant: 'Know the plant before you ask it for anything'
+};
+
+document.getElementById('runePanel').classList.toggle('active', mode==='rune');
+document.getElementById('deityPanel').classList.toggle('active', mode==='deity');
+document.getElementById('plantPanel').classList.toggle('active', mode==='plant');
+document.getElementById('kicker').textContent = KICKERS[mode];
+document.getElementById('foot').textContent = FOOTS[mode];
 
 let drawnName = '';
-if (isRune) {
+if (mode === 'rune') {
   const r = RUNES[dayIndex(RUNES.length)];
   drawnName = r.name;
   document.getElementById('glyph').textContent = r.g;
@@ -93,7 +124,7 @@ if (isRune) {
   document.getElementById('verse').innerHTML = r.verse.map(l=>'<span>'+l+'</span>').join('');
   document.getElementById('meaning').textContent = r.meaning;
   document.getElementById('runeSource').innerHTML = r.source ? '<b>Verse from:</b> '+r.source : '';
-} else {
+} else if (mode === 'deity') {
   const dd = DEITIES[dayIndex(DEITIES.length)];
   drawnName = dd.name;
   document.getElementById('deityName').textContent = dd.name;
@@ -102,6 +133,22 @@ if (isRune) {
   document.getElementById('blurb').textContent = dd.blurb;
   document.getElementById('brings').innerHTML = '<b>Brings:</b> '+dd.brings;
   document.getElementById('deitySource').innerHTML = '<b>Found in:</b> '+dd.source;
+} else {
+  const p = PLANTS[dayIndex(PLANTS.length)];
+  drawnName = p.name;
+  document.getElementById('plantName').textContent = p.name;
+  document.getElementById('plantFolk').textContent = p.folk;
+  document.getElementById('plantSub').textContent = p.sub;
+  document.getElementById('plantVerse').innerHTML = p.quote ? '<span>' + p.quote + '</span>' : '';
+  document.getElementById('plantBody').textContent = p.body;
+  const ties = [];
+  if (p.runes) ties.push('<b>Runes:</b> ' + p.runes);
+  if (p.deities) ties.push('<b>Walks with:</b> ' + p.deities);
+  if (p.uses) ties.push('<b>Works for:</b> ' + p.uses);
+  document.getElementById('plantTies').innerHTML = ties.join('<br>');
+  document.getElementById('plantWhen').innerHTML = p.when ? '<b>Best worked:</b> ' + p.when : '';
+  document.getElementById('plantCaution').innerHTML =
+    p.caution ? '<b>Care</b><br>' + p.caution : '';
 }
 
 // Scale the card to fit the 540x675 frame with margin
